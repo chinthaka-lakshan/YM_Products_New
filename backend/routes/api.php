@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\SalesRepDashboardController;
+use App\Http\Controllers\ShopController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -15,6 +16,9 @@ Route::post('/reset-password-with-otp', [AuthController::class, 'resetPasswordWi
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
+    Route::apiResource('shops', ShopController::class);
+    
+
     
     // Route::get('/selses-rep', [AuthController::class, 'getSalesReps']);
     Route::post('/logout', [AuthController::class, 'logout']);
