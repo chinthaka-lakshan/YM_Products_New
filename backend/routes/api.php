@@ -6,17 +6,22 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\SalesRepDashboardController;
 use App\Http\Controllers\ShopController;
+use App\Http\Controllers\PurchaseStockController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/send-otp', [AuthController::class, 'sendOtp']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/reset-password-with-otp', [AuthController::class, 'resetPasswordWithOtp']);
+Route::apiResource('purchase_stock', PurchaseStockController::class);
 
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::apiResource('shops', ShopController::class);
+    Route::get('/auth/verify', function () {
+        return response()->json(['message' => 'Authenticated']);
+    });
     
 
     
