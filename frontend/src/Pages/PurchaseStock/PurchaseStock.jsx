@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import api from "../../api/axios";
 import "./PurchaseStock.css";
-import AdminNavbar from "../../components/AdminNavbar/AdminNavbar.jsx";
-import AdminSidebar from "../../components/Sidebar/AdminSidebar/AdminSidebar.jsx";
+import AdminNavbar from "../../components/AdminNavbar/AdminNavbar";
+import AdminSidebar from "../../components/Sidebar/AdminSidebar/AdminSidebar";
 import InventoryIcon from "@mui/icons-material/ShoppingCart";
+import CircularProgress from "@mui/material/CircularProgress";
+import Alert from "@mui/material/Alert";
+import Button from "@mui/material/Button";
 
 const PurchaseStock = () => {
     const [items, setItems] = useState([]);
@@ -12,36 +16,66 @@ const PurchaseStock = () => {
     const [newItem, setNewItem] = useState({ item: "", weight: "" });
     const [editItem, setEditItem] = useState({ item: "", weight: "" });
     const [editIndex, setEditIndex] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [deleteLoading, setDeleteLoading] = useState(null);
+    const navigate = useNavigate();
 
     // Fetch purchase stocks from API
-    const fetchData = () => {
-        axios.get("http://127.0.0.1:8000/api/purchase_stock")
-            .then(response => setItems(response.data))
-            .catch(error => console.error("Error fetching purchase stock:", error));
+    const fetchData = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            
+            // Verify token first
+            try {
+                await api.get('/auth/verify');
+            } catch (verifyError) {
+                localStorage.removeItem('auth_token');
+                navigate('/login');
+                return;
+            }
+
+            const response = await api.get("/purchase_stock");
+            setItems(response.data);
+        } catch (error) {
+            console.error("Error fetching purchase stock:", error);
+            setError(error.response?.data?.message || "Failed to load purchase stock");
+            if (error.response?.status === 401) {
+                localStorage.removeItem('auth_token');
+                navigate('/login');
+            }
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [navigate]);
 
     // Add new item via API
-    const handleAddItem = () => {
+    const handleAddItem = async () => {
         if (!newItem.item || !newItem.weight) {
             alert("Please fill all fields");
             return;
         }
 
-        axios.post("http://127.0.0.1:8000/api/purchase_stock", newItem)
-            .then(() => {
-                fetchData();
-                setNewItem({ item: "", weight: "" });
-                setShowAddModal(false);
-                alert("Item added successfully!");
-            })
-            .catch((error) => {
-                console.error("Error adding purchase stock:", error);
-                alert("Failed to add item. Check input.");
-            });
+        try {
+            await api.post("/purchase_stock", newItem);
+            await fetchData();
+            setNewItem({ item: "", weight: "" });
+            setShowAddModal(false);
+            alert("Item added successfully!");
+        } catch (error) {
+            console.error("Error adding purchase stock:", error);
+            if (error.response?.status === 401) {
+                localStorage.removeItem('auth_token');
+                navigate('/login');
+            } else {
+                alert(error.response?.data?.message || "Failed to add item. Check input.");
+            }
+        }
     };
 
     const handleEditClick = (index) => {
@@ -50,33 +84,80 @@ const PurchaseStock = () => {
         setShowEditModal(true);
     };
 
-    const handleEditItem = () => {
-        const id = items[editIndex].id;
-        axios.put(`http://127.0.0.1:8000/api/purchase_stock/${id}`, editItem)
-            .then(() => {
-                fetchData();
-                setShowEditModal(false);
-                alert("Item updated successfully!");
-            })
-            .catch((error) => {
-                console.error("Error updating purchase stock:", error);
-                alert("Failed to update item.");
-            });
+    const handleEditItem = async () => {
+        try {
+            const id = items[editIndex].id;
+            await api.put(`/purchase_stock/${id}`, editItem);
+            await fetchData();
+            setShowEditModal(false);
+            alert("Item updated successfully!");
+        } catch (error) {
+            console.error("Error updating purchase stock:", error);
+            if (error.response?.status === 401) {
+                localStorage.removeItem('auth_token');
+                navigate('/login');
+            } else {
+                alert(error.response?.data?.message || "Failed to update item.");
+            }
+        }
     };
 
-    const handleDeleteItem = (id) => {
+    const handleDeleteItem = async (id) => {
         if (!window.confirm("Are you sure you want to delete this item?")) return;
 
-        axios.delete(`http://127.0.0.1:8000/api/purchase_stock/${id}`)
-            .then(() => {
-                fetchData();
-                alert("Item deleted successfully!");
-            })
-            .catch((error) => {
-                console.error("Error deleting item:", error);
-                alert("Failed to delete item.");
-            });
+        try {
+            setDeleteLoading(id);
+            await api.delete(`/purchase_stock/${id}`);
+            await fetchData();
+            alert("Item deleted successfully!");
+        } catch (error) {
+            console.error("Error deleting item:", error);
+            if (error.response?.status === 401) {
+                localStorage.removeItem('auth_token');
+                navigate('/login');
+            } else {
+                alert(error.response?.data?.message || "Failed to delete item.");
+            }
+        } finally {
+            setDeleteLoading(null);
+        }
     };
+
+    if (loading) {
+        return (
+            <div className="PurchaseStock">
+                <AdminSidebar />
+                <div className="PurchaseStockContainer">
+                    <AdminNavbar />
+                    <div className="loading-container">
+                        <CircularProgress />
+                        <p>Loading purchase stock...</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="PurchaseStock">
+                <AdminSidebar />
+                <div className="PurchaseStockContainer">
+                    <AdminNavbar />
+                    <div className="error-container">
+                        <Alert severity="error">{error}</Alert>
+                        <Button 
+                            variant="contained" 
+                            color="primary"
+                            onClick={fetchData}
+                        >
+                            Retry
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="PurchaseStock">
@@ -86,7 +167,13 @@ const PurchaseStock = () => {
                 <div className="PurchaseStockCardsContainer">
                     <div className="PurchaseStockTop">
                         <h1>Purchase Stock</h1>
-                        <button className="AddButton" onClick={() => setShowAddModal(true)}>Add New</button>
+                        <Button 
+                            variant="contained" 
+                            color="primary"
+                            onClick={() => setShowAddModal(true)}
+                        >
+                            Add New
+                        </Button>
                     </div>
                     <div className="PurchaseStockGrid">
                         {items.map((item, index) => (
@@ -99,8 +186,21 @@ const PurchaseStock = () => {
                                     </div>
                                 </div>
                                 <div className="PurchaseItemCardButtons">
-                                    <button className="DeleteButton" onClick={() => handleDeleteItem(item.id)}>Delete</button>
-                                    <button className="EditButton" onClick={() => handleEditClick(index)}>Update</button>
+                                    <Button
+                                        variant="outlined"
+                                        color="error"
+                                        onClick={() => handleDeleteItem(item.id)}
+                                        disabled={deleteLoading === item.id}
+                                    >
+                                        {deleteLoading === item.id ? <CircularProgress size={20} /> : "Delete"}
+                                    </Button>
+                                    <Button
+                                        variant="outlined"
+                                        color="primary"
+                                        onClick={() => handleEditClick(index)}
+                                    >
+                                        Update
+                                    </Button>
                                 </div>
                             </div>
                         ))}
@@ -121,18 +221,33 @@ const PurchaseStock = () => {
                                     placeholder="Enter Item Name"
                                     value={newItem.item}
                                     onChange={(e) => setNewItem({ ...newItem, item: e.target.value })}
+                                    required
                                 />
                                 <input
                                     type="number"
                                     placeholder="Enter Weight (kg)"
                                     value={newItem.weight}
                                     onChange={(e) => setNewItem({ ...newItem, weight: e.target.value })}
+                                    required
+                                    min="0"
+                                    step="0.01"
                                 />
                             </div>
                         </div>
                         <div className="ModalButtons">
-                            <button className="CancelButton" onClick={() => setShowAddModal(false)}>Cancel</button>
-                            <button className="SaveButton" onClick={handleAddItem}>Save</button>
+                            <Button 
+                                variant="outlined"
+                                onClick={() => setShowAddModal(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                variant="contained"
+                                color="primary"
+                                onClick={handleAddItem}
+                            >
+                                Save
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -151,18 +266,33 @@ const PurchaseStock = () => {
                                     placeholder="Enter Item Name"
                                     value={editItem.item}
                                     onChange={(e) => setEditItem({ ...editItem, item: e.target.value })}
+                                    required
                                 />
                                 <input
                                     type="number"
                                     placeholder="Enter Weight (kg)"
                                     value={editItem.weight}
                                     onChange={(e) => setEditItem({ ...editItem, weight: e.target.value })}
+                                    required
+                                    min="0"
+                                    step="0.01"
                                 />
                             </div>
                         </div>
                         <div className="ModalButtons">
-                            <button className="CancelButton" onClick={() => setShowEditModal(false)}>Cancel</button>
-                            <button className="SaveButton" onClick={handleEditItem}>Update</button>
+                            <Button 
+                                variant="outlined"
+                                onClick={() => setShowEditModal(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                variant="contained"
+                                color="primary"
+                                onClick={handleEditItem}
+                            >
+                                Update
+                            </Button>
                         </div>
                     </div>
                 </div>
