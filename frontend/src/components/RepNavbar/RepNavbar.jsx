@@ -44,7 +44,7 @@ const RepNavbar = ({ onMenuClick }) => {
       localStorage.removeItem("username");
       
       // Redirect to login page and refresh
-      navigate("/repLogin");
+      navigate("/");
       window.location.reload();
     }
   };
