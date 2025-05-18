@@ -2,14 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\BadReturn;
 use App\Models\Item;
+use App\Models\Returns;
 use Illuminate\Http\Request;
 use App\Models\Cashflow;
-use App\Models\Order; // ✅ Import Order model
+use App\Models\Order;
 use Illuminate\Support\Facades\Validator;
-use PhpParser\Node\Expr\Cast\Double;
-use Ramsey\Uuid\Type\Decimal;
+use Carbon\Carbon;
 
 class CashflowController extends Controller
 {
@@ -20,32 +19,33 @@ class CashflowController extends Controller
 
     public function store(Request $request)
     {
-        // get the total expenses from the badreturn table
-        $BadreturnExpenses = BadReturn::sum('return_cost');
+        $today = Carbon::today();
+
+
+
+        //  Get total of bad return costs
+        $badReturnsTotal = Returns::bad()->sum('return_cost');
+
+        //  Calculate item expenses
         $itemExpenses = Item::all()->sum(function ($item) {
-        return $item->quantity * $item->itemCost;
+            return $item->quantity * $item->itemCost;
         });
 
-        $transport = (Double) $request->input('transport');
-        $other = (Double) $request->input('other');
-        //   Get the total income from the orders table
+        //  Get user input
+        $transport = (float) $request->input('transport');
+        $other = (float) $request->input('other');
+
+        //  Total income
         $totalIncome = Order::sum('total_price');
-        $totalExpenses = $BadreturnExpenses + $itemExpenses + $transport + $other;
+
+        //  Total expenses and profit
+        $totalExpenses = $badReturnsTotal + $itemExpenses + $transport + $other;
         $totalProfit = $totalIncome - $totalExpenses;
 
-        //  Replace income in the request with $totalIncome
-        $request->merge(['income' => $totalIncome]);
-        $request->merge(['expenses' => $totalExpenses]);
-        $request->merge(['profit' => $totalProfit]);
-
-
-        // replace expenses in the request with $totalExpenses
-        // $request->merge(['expenses' => $totalExpenses]);
-
-        // Validate the rest of the fields (no need to validate income anymore)
+        //  Validation
         $validator = Validator::make($request->all(), [
-            'transport' => 'required|double|max:225',
-            'other' => 'required|double|max:255'
+            'transport' => 'required|numeric|max:999999.99',
+            'other' => 'required|numeric|max:999999.99',
         ]);
 
         if ($validator->fails()) {
@@ -56,7 +56,15 @@ class CashflowController extends Controller
         }
 
         try {
-            $cashflow = Cashflow::create($request->only(['income', 'transport', 'other', 'expenses', 'profit']));
+            $cashflow = Cashflow::create([
+                'income' => $totalIncome,
+                'transport' => $transport,
+                'other' => $other,
+                'expenses' => $totalExpenses,
+                'profit' => $totalProfit,
+                'created_at' => $today,
+                'updated_at' => now(),
+            ]);
 
             return response()->json([
                 'message' => 'Cashflow created successfully',
@@ -80,4 +88,41 @@ class CashflowController extends Controller
 
         return response()->json($cashflow, 200);
     }
+
+    public function dailySummary()
+    {
+        $today = Carbon::today();
+
+        $dailyCashflow = Cashflow::whereDate('created_at', $today)->get();
+
+        $income = $dailyCashflow->sum('income');
+        $expenses = $dailyCashflow->sum('expenses');
+        $profit = $dailyCashflow->sum('profit');
+
+        return response()->json([
+            'income' => $income,
+            'expenses' => $expenses,
+            'profit' => $profit
+        ]);
+    }
+
+    public function monthlySummary()
+    {
+        $startOfMonth = Carbon::now()->startOfMonth();
+        $endOfMonth = Carbon::now()->endOfMonth();
+
+        $monthlyCashflow = Cashflow::whereBetween('created_at', [$startOfMonth, $endOfMonth])->get();
+
+        $income = $monthlyCashflow->sum('income');
+        $expenses = $monthlyCashflow->sum('expenses');
+        $profit = $monthlyCashflow->sum('profit');
+
+        return response()->json([
+            'income' => $income,
+            'expenses' => $expenses,
+            'profit' => $profit
+        ]);
+    }
+
+    
 }

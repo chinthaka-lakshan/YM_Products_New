@@ -18,12 +18,16 @@ Route::apiResource('purchase_stock', PurchaseStockController::class);
 Route::get('/purchase-stock/low', [PurchaseStockController::class, 'lowStock']);
 
 
-Route::get('/cashflows', [CashflowController::class, 'index']);
-Route::post('/cashflows', [CashflowController::class, 'store']);
-Route::get('/cashflows/{id}', [CashflowController::class, 'show']);
+
 
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/cashflows', [CashflowController::class, 'index']);
+    Route::post('/cashflows', [CashflowController::class, 'store']);
+    Route::get('/cashflows/{id}', [CashflowController::class, 'show']);
+    Route::get('/daily-summary', [CashflowController::class, 'dailySummary']);
+
+
     Route::get('/me', [AuthController::class, 'me']);
     Route::apiResource('shops', ShopController::class);
     Route::get('/auth/verify', function () {
