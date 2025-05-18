@@ -7,6 +7,7 @@ use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\SalesRepDashboardController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\PurchaseStockController;
+use App\Http\Controllers\CashflowController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -14,6 +15,11 @@ Route::post('/send-otp', [AuthController::class, 'sendOtp']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/reset-password-with-otp', [AuthController::class, 'resetPasswordWithOtp']);
 Route::apiResource('purchase_stock', PurchaseStockController::class);
+
+
+Route::get('/cashflows', [CashflowController::class, 'index']);
+Route::post('/cashflows', [CashflowController::class, 'store']);
+Route::get('/cashflows/{id}', [CashflowController::class, 'show']);
 
 
 Route::middleware('auth:sanctum')->group(function () {
