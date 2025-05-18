@@ -38,7 +38,7 @@ const handleSubmit = async (e) => {
       // Determine dashboard based on role
       const dashboardPath = response.data.user.role === 'admin' 
         ? "/admindashboard" 
-        : "/salesdashboard";
+        : "/repDashboard";
       
       alert("Login successful!");
       navigate(dashboardPath);

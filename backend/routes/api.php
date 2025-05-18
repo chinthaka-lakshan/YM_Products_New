@@ -14,6 +14,7 @@ Route::post('/send-otp', [AuthController::class, 'sendOtp']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/reset-password-with-otp', [AuthController::class, 'resetPasswordWithOtp']);
 Route::apiResource('purchase_stock', PurchaseStockController::class);
+Route::get('/purchase-stock/low', [PurchaseStockController::class, 'lowStock']);
 
 
 Route::middleware('auth:sanctum')->group(function () {
