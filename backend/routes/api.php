@@ -36,7 +36,7 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Admin routes
 
-    Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+    Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
         // Admin routes here
 
         Route::put('/sales-reps/{id}', [AdminDashboardController::class, 'editRep']);
