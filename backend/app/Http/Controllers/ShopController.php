@@ -107,4 +107,24 @@ class ShopController extends Controller
             ], 404);
         }
     }
+
+
+    public function updateReturnBalance(Shop $shop,Request $request)
+    {
+        $validated = $request->validate([
+            'return_balance'=> 'required|numeric|min:0',
+        ]);
+
+        $shop->update([
+            'return_balance'=>$validated['return_balance'],
+        ]);
+
+        return response()->json([
+            'message'=>'Return balance updated successfully',
+            'data'=>[
+                'shop_id'=>$shop->id,
+                'new_balance'=>$shop->return_balance
+            ]
+        ],200);  
+    }
 }
