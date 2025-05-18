@@ -28,18 +28,23 @@ const AdminLogin = () => {
     const hasLowerCase = /[a-z]/.test(password);
     const hasNumber = /[0-9]/.test(password);
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-    
+
     const requirements = [
-      { met: password.length >= minLength, message: `at least ${minLength} characters` },
+      {
+        met: password.length >= minLength,
+        message: `at least ${minLength} characters`,
+      },
       { met: hasUpperCase, message: "at least one uppercase letter" },
       { met: hasLowerCase, message: "at least one lowercase letter" },
       { met: hasNumber, message: "at least one number" },
-      { met: hasSpecialChar, message: "at least one special character" }
+      { met: hasSpecialChar, message: "at least one special character" },
     ];
 
     return {
-      isValid: requirements.every(req => req.met),
-      messages: requirements.filter(req => !req.met).map(req => req.message)
+      isValid: requirements.every((req) => req.met),
+      messages: requirements
+        .filter((req) => !req.met)
+        .map((req) => req.message),
     };
   };
 
@@ -48,19 +53,21 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
-      const response = await api.post('/login', { email, password });
+      const response = await api.post("/login", { email, password });
 
       if (response.data.access_token) {
         localStorage.setItem("auth_token", response.data.access_token);
         localStorage.setItem("user", JSON.stringify(response.data.user));
         localStorage.setItem("username", response.data.user.name);
-        
-        const dashboardPath = response.data.user.role === 'admin' 
-          ? "/admindashboard" 
-          : "/repDashboard";
-        
+
+        const dashboardPath =
+          response.data.user.role === "admin"
+            ? "/admindashboard"
+            : "/repDashboard";
+
         alert("Login successful!");
         navigate(dashboardPath);
+        console.log(localStorage.getItem("auth_token"));
       } else {
         throw new Error("Login failed: No token received");
       }
@@ -134,28 +141,31 @@ const AdminLogin = () => {
       }
     } catch (error) {
       console.error("OTP verification error:", error);
-      alert(error.response?.data?.error || "An unexpected error occurred during OTP verification.");
+      alert(
+        error.response?.data?.error ||
+          "An unexpected error occurred during OTP verification."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   const handleChangePassword = async () => {
-    setError('');
-    
+    setError("");
+
     if (!newPassword || !repeatPassword) {
-      setError('Please enter and confirm your new password');
+      setError("Please enter and confirm your new password");
       return;
     }
 
     if (newPassword !== repeatPassword) {
-      setError('Passwords do not match!');
+      setError("Passwords do not match!");
       return;
     }
 
     const { isValid, messages } = validatePassword(newPassword);
     if (!isValid) {
-      setError(`Password requirements not met: ${messages.join(', ')}`);
+      setError(`Password requirements not met: ${messages.join(", ")}`);
       return;
     }
 
@@ -171,33 +181,37 @@ const AdminLogin = () => {
         },
         {
           headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          }
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
         }
       );
 
-      if (response.data.message === 'Password reset successfully') {
-        setSuccessMessage('Password changed successfully!');
-        
+      if (response.data.message === "Password reset successfully") {
+        setSuccessMessage("Password changed successfully!");
+
         setTimeout(() => {
-          setEmail('');
-          setOTP('');
-          setNewPassword('');
-          setRepeatPassword('');
-          setSuccessMessage('');
+          setEmail("");
+          setOTP("");
+          setNewPassword("");
+          setRepeatPassword("");
+          setSuccessMessage("");
           setForgotPasswordMode(false);
           setEnterOTPMode(false);
           setChangePasswordMode(false);
-          navigate('/');
+          navigate("/");
         }, 3000);
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.error || 
-                         error.response?.data?.message || 
-                         'Failed to reset password. Please try again.';
+      const errorMessage =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        "Failed to reset password. Please try again.";
       setError(errorMessage);
-      console.error('Password reset error:', error.response?.data || error.message);
+      console.error(
+        "Password reset error:",
+        error.response?.data || error.message
+      );
     } finally {
       setLoading(false);
     }
@@ -299,7 +313,9 @@ const AdminLogin = () => {
             <h1>Change Password</h1>
             <h3>Enter A New Password To Gain Access To Your Account</h3>
             {error && <div className="error-message">{error}</div>}
-            {successMessage && <div className="success-message">{successMessage}</div>}
+            {successMessage && (
+              <div className="success-message">{successMessage}</div>
+            )}
             <div className="InputFields">
               <input
                 type="password"
