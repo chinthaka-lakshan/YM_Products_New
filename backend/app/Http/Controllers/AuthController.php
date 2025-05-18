@@ -71,7 +71,10 @@ public function verifyOtp(Request $request)
 
     // Check if OTP record exists
     if (!$otpRecord) {
-        return response()->json(['error' => 'Invalid OTP'], 400);
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Invalid OTP or user not found'
+        ], 400);
     }
 
     // Check if created_at exists
