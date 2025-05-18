@@ -121,7 +121,7 @@ class PurchaseStockController extends Controller
     public function lowStock()
     {
         // Define your threshold for low stock (e.g., less than 10kg)
-        $threshold = 10;
+        $threshold = 5;
         
         $lowStockItems = PurchaseStock::where('weight', '<', $threshold)
             ->orderBy('weight', 'asc')
