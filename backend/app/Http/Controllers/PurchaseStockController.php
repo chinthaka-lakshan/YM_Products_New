@@ -115,4 +115,18 @@ class PurchaseStockController extends Controller
             ], 500);
         }
     }
+
+    // In App\Http\Controllers\PurchaseStockController.php
+
+    public function lowStock()
+    {
+        // Define your threshold for low stock (e.g., less than 10kg)
+        $threshold = 10;
+        
+        $lowStockItems = PurchaseStock::where('weight', '<', $threshold)
+            ->orderBy('weight', 'asc')
+            ->get();
+        
+        return response()->json($lowStockItems);
+    }
 }
