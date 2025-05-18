@@ -2,13 +2,12 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "./login.css";
-import api from "../../../api/axios"; // Adjust the import path as necessary
+import api from "../../../api/axios";
 import logo from "../../../assets/YM.png";
 
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [error, setError] = useState("");
   const [otp, setOTP] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -17,161 +16,192 @@ const AdminLogin = () => {
   const [forgotPasswordMode, setForgotPasswordMode] = useState(false);
   const [enterOTPMode, setEnterOTPMode] = useState(false);
   const [changePasswordMode, setChangePasswordMode] = useState(false);
-
   const [loadingTransition, setLoadingTransition] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   const navigate = useNavigate();
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
+  // Password validation function
+  const validatePassword = (password) => {
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    
+    const requirements = [
+      { met: password.length >= minLength, message: `at least ${minLength} characters` },
+      { met: hasUpperCase, message: "at least one uppercase letter" },
+      { met: hasLowerCase, message: "at least one lowercase letter" },
+      { met: hasNumber, message: "at least one number" },
+      { met: hasSpecialChar, message: "at least one special character" }
+    ];
 
-  try {
-    const response = await api.post('/login', { email, password });
+    return {
+      isValid: requirements.every(req => req.met),
+      messages: requirements.filter(req => !req.met).map(req => req.message)
+    };
+  };
 
-    if (response.data.access_token) {
-      localStorage.setItem("auth_token", response.data.access_token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
-      localStorage.setItem("username", response.data.user.name);
-      console.log("token",localStorage.getItem("auth_token"));
-      
-      // Determine dashboard based on role
-      const dashboardPath = response.data.user.role === 'admin' 
-        ? "/admindashboard" 
-        : "/salesdashboard";
-      
-      alert("Login successful!");
-      navigate(dashboardPath);
-    } else {
-      throw new Error("Login failed: No token received");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const response = await api.post('/login', { email, password });
+
+      if (response.data.access_token) {
+        localStorage.setItem("auth_token", response.data.access_token);
+        localStorage.setItem("user", JSON.stringify(response.data.user));
+        localStorage.setItem("username", response.data.user.name);
+        
+        const dashboardPath = response.data.user.role === 'admin' 
+          ? "/admindashboard" 
+          : "/repDashboard";
+        
+        alert("Login successful!");
+        navigate(dashboardPath);
+      } else {
+        throw new Error("Login failed: No token received");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        "Login failed. Please try again.";
+      alert(errorMessage);
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error("Login error:", error);
-    const errorMessage =
-      error.response?.data?.message ||
-      error.response?.data?.error ||
-      "Login failed. Please try again.";
-    alert(errorMessage);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const handleSendResetEmail = async () => {
-  if (!email) {
-    alert("Please enter your email to send reset instructions.");
-    return;
-  }
+    if (!email) {
+      alert("Please enter your email to send reset instructions.");
+      return;
+    }
 
-  try {
-    setLoading(true);
-    const response = await axios.post(
-      "http://localhost:8000/api/send-otp",
-      { email },
-      {
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
+    try {
+      setLoading(true);
+      const response = await axios.post(
+        "http://localhost:8000/api/send-otp",
+        { email },
+        {
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.data.message) {
+        alert(response.data.message);
+        setEnterOTPMode(true);
+      }
+    } catch (error) {
+      console.error("Error sending OTP:", error);
+      alert(error.response?.data?.message || "Failed to send OTP");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOTP = async () => {
+    if (!otp) {
+      alert("Please enter the OTP you received.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await axios.post(
+        "http://localhost:8000/api/verify-otp",
+        { email, otp },
+        {
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.data?.message === "OTP verified successfully") {
+        alert("OTP verified!");
+        setChangePasswordMode(true);
+      } else {
+        alert("OTP Verification Failed!");
+      }
+    } catch (error) {
+      console.error("OTP verification error:", error);
+      alert(error.response?.data?.error || "An unexpected error occurred during OTP verification.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    setError('');
+    
+    if (!newPassword || !repeatPassword) {
+      setError('Please enter and confirm your new password');
+      return;
+    }
+
+    if (newPassword !== repeatPassword) {
+      setError('Passwords do not match!');
+      return;
+    }
+
+    const { isValid, messages } = validatePassword(newPassword);
+    if (!isValid) {
+      setError(`Password requirements not met: ${messages.join(', ')}`);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await axios.post(
+        "http://localhost:8000/api/reset-password-with-otp",
+        {
+          email,
+          otp,
+          password: newPassword,
+          password_confirmation: repeatPassword,
         },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      if (response.data.message === 'Password reset successfully') {
+        setSuccessMessage('Password changed successfully!');
+        
+        setTimeout(() => {
+          setEmail('');
+          setOTP('');
+          setNewPassword('');
+          setRepeatPassword('');
+          setSuccessMessage('');
+          setForgotPasswordMode(false);
+          setEnterOTPMode(false);
+          setChangePasswordMode(false);
+          navigate('/');
+        }, 3000);
       }
-    );
-
-    if (response.data.message) {
-      alert(response.data.message);
-      setEnterOTPMode(true);
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || 
+                         error.response?.data?.message || 
+                         'Failed to reset password. Please try again.';
+      setError(errorMessage);
+      console.error('Password reset error:', error.response?.data || error.message);
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error("Error sending OTP:", error);
-    alert(error.response?.data?.message || "Failed to send OTP");
-  } finally {
-    setLoading(false);
-  }
-};
-
-const handleOTP = async () => {
-  if (!otp) {
-    alert("Please enter the OTP you received.");
-    return;
-  }
-
-  if (newPassword !== repeatPassword) {
-    alert("Passwords do not match!");
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    const response = await axios.post(
-      "http://localhost:8000/api/verify-otp",
-      { email, otp },
-      {
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (response.data?.message === "OTP verified successfully") {
-      alert("OTP verified!");
-      setChangePasswordMode(true);
-    } else {
-      alert("OTP Verification Failed!");
-    }
-
-  } catch (error) {
-    console.error("OTP verification error:", error);
-    alert(error.response?.data?.error || "An unexpected error occurred during OTP verification.");
-  } finally {
-    setLoading(false);
-  }
-};
-
-const handleChangePassword = async () => {
-  if (!newPassword) {
-    alert("Please enter a new password.");
-    return;
-  }
-
-  if (newPassword !== repeatPassword) {
-    alert("Passwords do not match!");
-    return;
-  }
-
-  try {
-    setLoading(true);
-    const response = await axios.post(
-      "http://localhost:8000/api/reset-password-with-otp",
-      {
-        email,
-        otp,
-        password: newPassword,
-        password_confirmation: repeatPassword,
-      }
-    );
-
-    if (response.data.message === "Password reset successfully") {
-      setSuccessMessage("Password changed successfully!");
-      
-      // Clear form and reset modes after 3 seconds
-      setTimeout(() => {
-        setForgotPasswordMode(false);
-        setEnterOTPMode(false);
-        setChangePasswordMode(false);
-        setEmail("");
-        setOTP("");
-        setNewPassword("");
-        setRepeatPassword("");
-        setSuccessMessage("");
-      }, 3000);
-    }
-  } catch (error) {
-    alert(error.response?.data?.error || "Failed to reset password");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <div className="AdminLogin">
@@ -268,6 +298,8 @@ const handleChangePassword = async () => {
           <form onSubmit={handleSubmit}>
             <h1>Change Password</h1>
             <h3>Enter A New Password To Gain Access To Your Account</h3>
+            {error && <div className="error-message">{error}</div>}
+            {successMessage && <div className="success-message">{successMessage}</div>}
             <div className="InputFields">
               <input
                 type="password"
@@ -284,6 +316,16 @@ const handleChangePassword = async () => {
                 required
               />
             </div>
+            <div className="password-requirements">
+              <p>Password must contain:</p>
+              <ul>
+                <li>Minimum 8 characters</li>
+                <li>At least one uppercase letter</li>
+                <li>At least one lowercase letter</li>
+                <li>At least one number</li>
+                <li>At least one special character</li>
+              </ul>
+            </div>
             <div className="AdminLoginButtons">
               <button
                 type="button"
@@ -296,17 +338,17 @@ const handleChangePassword = async () => {
                 type="button"
                 className="ChangePassword"
                 onClick={handleChangePassword}
+                disabled={loading}
               >
-                Confirm
+                {loading ? "Processing..." : "Confirm"}
               </button>
             </div>
           </form>
         )}
 
-        {/* Displaying the loading graphic if loadingTransition is true */}
         {loadingTransition && (
           <div className="LoadingTransition">
-            <div className="spinner"></div> {/* You can style this spinner */}
+            <div className="spinner"></div>
             <p>Please Wait! Redirecting Back To The Login Page...</p>
           </div>
         )}

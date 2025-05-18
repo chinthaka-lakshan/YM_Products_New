@@ -13,18 +13,24 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('shops', function (Blueprint $table) {
+        Schema::create('cashflows', function (Blueprint $table) {
             $table->id();
-            $table->string('shop_name');
-            $table->string('location');
-            $table->string('contact');
-            $table->decimal('return_balance',10,2)->default(0);
+            $table->double('income');
+            $table->double('transport');
+            $table->double('other');
+            $table->double('expenses');
+            $table->double('profit');
             $table->timestamps();
         });
     }
 
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
     public function down()
     {
-        Schema::dropIfExists('shops');
+        Schema::dropIfExists('cashflows');
     }
 };

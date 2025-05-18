@@ -13,12 +13,14 @@
         "laravel/tinker": "^2.7"
     },
     "require-dev": {
+        "codeception/codeception": "^5.1",
         "fakerphp/faker": "^1.9.1",
+        "laravel/dusk": "^7.13",
         "laravel/pint": "^1.0",
         "laravel/sail": "^1.0.1",
         "mockery/mockery": "^1.4.4",
         "nunomaduro/collision": "^6.1",
-        "phpunit/phpunit": "^9.5.10",
+        "phpunit/phpunit": "^9.6",
         "spatie/laravel-ignition": "^1.0"
     },
     "autoload": {
