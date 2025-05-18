@@ -7,6 +7,9 @@ use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\SalesRepDashboardController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\PurchaseStockController;
+
+use App\Http\Controllers\CashflowController;
+
 use App\Http\Controllers\ItemController;
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -22,7 +25,16 @@ Route::apiResource('items', ItemController::class);
 Route::put('/items/{id}/add-stock', [ItemController::class, 'addStock']);
 
 
+
+
+
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/cashflows', [CashflowController::class, 'index']);
+    Route::post('/cashflows', [CashflowController::class, 'store']);
+    Route::get('/cashflows/{id}', [CashflowController::class, 'show']);
+    Route::get('/daily-summary', [CashflowController::class, 'dailySummary']);
+
+
     Route::get('/me', [AuthController::class, 'me']);
     Route::apiResource('shops', ShopController::class);
     Route::get('/auth/verify', function () {
