@@ -7,6 +7,7 @@ use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\SalesRepDashboardController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\PurchaseStockController;
+use App\Http\Controllers\ItemController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
