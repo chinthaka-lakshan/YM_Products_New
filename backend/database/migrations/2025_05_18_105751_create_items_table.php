@@ -13,18 +13,24 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('shops', function (Blueprint $table) {
+        Schema::create('items', function (Blueprint $table) {
             $table->id();
-            $table->string('shop_name');
-            $table->string('location');
-            $table->string('contact');
-            $table->decimal('return_balance',10,2)->default(0);
+            $table->string('item');
+            $table->decimal('unitPrice',8,2);
+            $table->integer('quantity');
+            $table->decimal('itemCost',8,2);
+            
             $table->timestamps();
         });
     }
 
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
     public function down()
     {
-        Schema::dropIfExists('shops');
+        Schema::dropIfExists('items');
     }
 };
